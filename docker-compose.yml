@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: fcg-users-api
+    ports:
+      - "8080:8080"
+      - "8081:8081"
+    environment:
+      ConnectionStrings__DefaultConnection: "Server=sql,1433;Database=Fcg-Users;User Id=sa;Password=sEJhzI4k0cS8;Encrypt=True;TrustServerCertificate=True;MultipleActiveResultSets=True"
+      ASPNETCORE_URLS: "http://+:8080"
+      ASPNETCORE_ENVIRONMENT: "Development"
+      Jwt__Key: "9y4XJg0aTphzFJw3TvksRvqHXd+Q4VB8f7ZvU08N+9Q="
+      Jwt__Issuer: "FGC-Users"
+      Jwt__Audience: "API"
+      Jwt__ExpiresMinutes: "120"
+      ServiceBus__ConnectionString: "Endpoint=sb://fcg-servicebus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=5zh5WCYaMLZU6t6ufQIy1UnQce+SXMceo+ASbK2cgSA="
+      ServiceBus__Queues__GamesEvents: "games-events"
+      ServiceBus__Queues__UsersEvents: "users-events"
+      ServiceBus__Queues__LibrariesEvents: "libraries-events"
+      MongoDB__ConnectionString: "mongodb+srv://fcgadmin:Senha%23123@fcg-events-db.global.mongocluster.cosmos.azure.com/?tls=true&authMechanism=SCRAM-SHA-256&retrywrites=false&maxIdleTimeMS=120000"
+      MongoDB__DatabaseName: "events"
+      MongoDB__CollectionName: "events"
+      Logging__LogLevel__Default: "Information"
+      Logging__LogLevel__Microsoft.AspNetCore: "Warning"
+      AllowedHosts: "*"
+    depends_on:
+      sql:
+        condition: service_healthy
+
+  sql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: fcg-users-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Developer"
+      MSSQL_SA_PASSWORD: "sEJhzI4k0cS8"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P \"$MSSQL_SA_PASSWORD\" -Q \"SELECT 1\" >/dev/null 2>&1 || grep -q 'SQL Server is now ready for client connections' /var/opt/mssql/log/errorlog"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+
+volumes:
+  mssql-data:
